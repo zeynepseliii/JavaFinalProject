@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: obs-mssql
+    environment:
+      # SQL Server admin (SA) kullanıcısının şifresi. Güçlü ve güvenli olmalı.
+      SA_PASSWORD: "S.b123456"
+      # Lisans şartlarını kabul etmek için 'Y' yazılır.
+      ACCEPT_EULA: "Y"
+    ports:
+      - "1433:1433"  # Host makineden SQL Server'a erişmek için port
+    volumes:
+      - mssql-data:/var/opt/mssql  # Kalıcı veri için volume
+    restart: always
+
+  backend:
+    build:
+      context: ./backend/obs-api
+    container_name: obs-backend
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mssql
+    environment:
+      # Spring Boot MSSQL bağlantı ayarları (docker içinde)
+      SPRING_DATASOURCE_URL: jdbc:sqlserver://mssql:1433;databaseName=OBSDBB;encrypt=false
+      SPRING_DATASOURCE_USERNAME: zeynep_user
+      SPRING_DATASOURCE_PASSWORD: S.b123456
+    restart: always
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: obs-frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  mssql-data:
